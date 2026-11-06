@@ -202,18 +202,31 @@ const needPdfjs = () => pdfjsReady || (pdfjsReady = (async () => {
 })());
 
 /* ---------- saqlash (yuklab olish) ---------- */
-let downloads = null;
-if (window.claude && claude.use) claude.use('downloads').then(d => { downloads = d; }).catch(() => {});
 async function saveFile(out, statusEl) {
-  if (!downloads) { statusEl.textContent = 'Bu koʻrinishda saqlash ishlamaydi. Sahifani claude.ai ichida oching.'; return; }
   try {
-    const type = out.name.endsWith('.zip') ? 'application/zip' : 'application/pdf';
-    await downloads.save({ filename: out.name, data: new Blob([out.data], { type }) });
-    statusEl.textContent = 'Saqlash soʻrovi qabul qilindi: ' + out.name;
+    const blob = new Blob([out.data], {
+      type: out.name.endsWith('.zip')
+        ? 'application/zip'
+        : 'application/pdf'
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = out.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    statusEl.textContent = 'Faylni saqlash boshlandi: ' + out.name;
   } catch (e) {
-    statusEl.textContent = e && e.code === 'declined' ? 'Saqlash bekor qilindi.' : 'Saqlab boʻlmadi' + (e && e.message ? ': ' + e.message : '.');
+    statusEl.textContent = 'Faylni saqlashda xatolik yuz berdi.';
   }
 }
+
 
 /* ---------- sahifa diapazonlari: "1-3, 5, 8-" ---------- */
 function parseRanges(text, max) {
